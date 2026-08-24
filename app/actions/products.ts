@@ -24,14 +24,17 @@ const productSchema = z.object({
   tags: z.string().max(400),
   technologies: z.string().max(600),
   contentHtml: z.string().min(1, "Write a product description."),
-  liveDemoUrl: z.union([z.literal(""), z.string().url("Enter a valid URL.").startsWith("https://", "Live demo must use HTTPS.").max(500)]),
+  liveDemoUrl: z.string().trim().max(500).refine((value) => !value || /^https:\/\/[^\s]+$/i.test(value), "Live demo must be a valid HTTPS URL."),
   seoTitle: z.string().trim().max(70, "SEO title must contain at most 70 characters."),
   seoDescription: z.string().trim().max(170, "SEO description must contain at most 170 characters."),
   gallery: z.array(galleryItemSchema).max(12, "A product can have at most 12 gallery images."),
   coverMediaId: z.string().trim(),
   productId: z.string().trim(),
   featured: z.boolean(),
-  displayOrder: z.coerce.number().int().min(0).max(9999),
+  displayOrder: z.preprocess(
+    (value) => value === "" ? undefined : value,
+    z.coerce.number().int().min(0).max(9999).optional(),
+  ),
   intent: z.enum(["draft", "publish", "schedule"]),
   publishedAt: z.string().trim(),
   timezoneOffset: z.coerce.number().min(-840).max(840),
@@ -108,7 +111,7 @@ export async function saveProductAction(_state: ProductFormState, formData: Form
     tags: normalizeTags(parsed.data.tags), technologies: normalizeTags(parsed.data.technologies),
     contentHtml, contentText, liveDemoUrl: parsed.data.liveDemoUrl,
     galleryMedia: galleryIds, coverMedia: parsed.data.coverMediaId || null, mediaIds: requestedMediaIds,
-    featured: parsed.data.featured, displayOrder: parsed.data.displayOrder,
+    featured: parsed.data.featured, displayOrder: parsed.data.featured ? parsed.data.displayOrder ?? 0 : 0,
     seoTitle: parsed.data.seoTitle, seoDescription: parsed.data.seoDescription, status, publishedAt,
   };
   const saved = product || new Product({ author: user.id, slug });
