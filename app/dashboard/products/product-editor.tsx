@@ -69,6 +69,7 @@ function uploadImageWithProgress(file: File, altText: string, onProgress: (progr
     request.addEventListener("abort", () => reject(new Error("Image upload was cancelled.")));
     request.send(data);
   });
+  
 }
 async function deleteUnattached(id: string) { await fetch(`/api/media/${id}`, { method: "DELETE" }).catch(() => undefined); }
 
