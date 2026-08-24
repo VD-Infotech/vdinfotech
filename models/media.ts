@@ -6,6 +6,7 @@ const mediaSchema = new Schema(
   {
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     post: { type: Schema.Types.ObjectId, ref: "Post", default: null, index: true },
+    product: { type: Schema.Types.ObjectId, ref: "Product", default: null, index: true },
     kind: { type: String, enum: ["image", "download"], default: "image", index: true },
     storedName: { type: String, required: true, unique: true },
     originalName: { type: String, required: true, maxlength: 255 },
@@ -15,5 +16,9 @@ const mediaSchema = new Schema(
   },
   { timestamps: true },
 );
+
+mediaSchema.pre("validate", function () {
+  if (this.post && this.product) this.invalidate("product", "Media cannot belong to both a post and a product.");
+});
 
 export const Media = models.Media || model("Media", mediaSchema);

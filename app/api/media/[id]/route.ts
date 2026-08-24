@@ -35,6 +35,9 @@ export async function DELETE(request: Request, context: RouteContext<"/api/media
   if (media.post) {
     return NextResponse.json({ error: "Attached media must be removed from the post first." }, { status: 409 });
   }
+  if (media.product) {
+    return NextResponse.json({ error: "Attached media must be removed from the product first." }, { status: 409 });
+  }
   const usedByHero = await HeroSettings.exists({ "slides.image": media._id });
   if (usedByHero) {
     return NextResponse.json({ error: "This image is attached to a hero slide. Save the carousel after removing it first." }, { status: 409 });

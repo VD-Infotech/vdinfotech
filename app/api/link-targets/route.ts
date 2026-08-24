@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { publicPostFilter } from "@/lib/blog";
 import { Post } from "@/models/post";
+import { publicProductFilter } from "@/lib/product";
+import { Product } from "@/models/product";
 
 const staticTargets = [
   { title: "Home", url: "/", type: "Page" },
@@ -12,6 +14,7 @@ const staticTargets = [
   { title: "Process", url: "/#process", type: "Page section" },
   { title: "Contact", url: "/#contact", type: "Page section" },
   { title: "Blog", url: "/blog", type: "Page" },
+  { title: "Products", url: "/products", type: "Page" },
   { title: "Login", url: "/login", type: "Page" },
   { title: "Create account", url: "/signup", type: "Page" },
 ];
@@ -24,12 +27,15 @@ export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q")?.trim().slice(0, 100) || "";
   const matchingStatic = staticTargets.filter((target) => !query || `${target.title} ${target.url}`.toLowerCase().includes(query.toLowerCase()));
   await connectToDatabase();
-  const posts = await Post.find({
-    ...publicPostFilter(),
-    ...(query ? { title: { $regex: escapeRegex(query), $options: "i" } } : {}),
-  }).select("title slug").sort({ publishedAt: -1 }).limit(Math.max(0, 20 - matchingStatic.length)).lean().exec();
+  const titleFilter = query ? { title: { $regex: escapeRegex(query), $options: "i" } } : {};
+  const remaining = Math.max(0, 20 - matchingStatic.length);
+  const [posts, products] = await Promise.all([
+    Post.find({ ...publicPostFilter(), ...titleFilter }).select("title slug").sort({ publishedAt: -1 }).limit(remaining).lean().exec(),
+    Product.find({ ...publicProductFilter(), ...titleFilter }).select("title slug").sort({ publishedAt: -1 }).limit(remaining).lean().exec(),
+  ]);
   return NextResponse.json({ targets: [
     ...matchingStatic,
     ...posts.map((post) => ({ title: post.title, url: `/blog/${post.slug}`, type: "Blog post" })),
+    ...products.map((product) => ({ title: product.title, url: `/products/${product.slug}`, type: "Product" })),
   ].slice(0, 20) });
 }

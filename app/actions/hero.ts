@@ -23,7 +23,7 @@ export async function saveHeroAction(_state: HeroFormState, formData: FormData):
   const mediaIds = [...new Set(parsed.data.slides.map((slide) => slide.imageId).filter(Boolean))];
   if (mediaIds.some((id) => !Types.ObjectId.isValid(id))) return { message: "A selected image is invalid." };
   await connectToDatabase();
-  const ownedMedia = mediaIds.length ? await Media.find({ _id: { $in: mediaIds }, owner: user.id, kind: "image", post: null }).select("_id").lean().exec() : [];
+  const ownedMedia = mediaIds.length ? await Media.find({ _id: { $in: mediaIds }, owner: user.id, kind: "image", post: null, product: null }).select("_id").lean().exec() : [];
   if (ownedMedia.length !== mediaIds.length) return { message: "One or more images are unavailable or already attached elsewhere." };
 
   const previous = await HeroSettings.findOne({ key: "homepage" }).select("slides.image").lean().exec() as { slides: { image?: Types.ObjectId | null }[] } | null;
@@ -42,9 +42,9 @@ export async function saveHeroAction(_state: HeroFormState, formData: FormData):
   };
   await HeroSettings.findOneAndUpdate({ key: "homepage" }, { $set: values, $setOnInsert: { key: "homepage" } }, { upsert: true, runValidators: true, strict: false }).exec();
   if (removedIds.length) {
-    const removed = await Media.find({ _id: { $in: removedIds }, owner: user.id, post: null }).select("storedName").lean().exec();
+    const removed = await Media.find({ _id: { $in: removedIds }, owner: user.id, post: null, product: null }).select("storedName").lean().exec();
     await Promise.all(removed.map((media) => removeImage(media.storedName)));
-    await Media.deleteMany({ _id: { $in: removedIds }, owner: user.id, post: null });
+    await Media.deleteMany({ _id: { $in: removedIds }, owner: user.id, post: null, product: null });
   }
   revalidatePath("/");
   revalidatePath("/dashboard/hero");

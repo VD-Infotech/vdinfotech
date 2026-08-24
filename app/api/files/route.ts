@@ -22,15 +22,18 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim().slice(0, 100) || "";
   const postId = url.searchParams.get("postId") || "";
-  const postAccess = Types.ObjectId.isValid(postId)
-    ? [{ post: null }, { post: postId }]
-    : [{ post: null }];
+  const productId = url.searchParams.get("productId") || "";
+  const access = [
+    { post: null, product: null },
+    ...(Types.ObjectId.isValid(postId) ? [{ post: postId, product: null }] : []),
+    ...(Types.ObjectId.isValid(productId) ? [{ product: productId, post: null }] : []),
+  ];
 
   await connectToDatabase();
   const files = await Media.find({
     owner: user.id,
     kind: "download",
-    $or: postAccess,
+    $or: access,
     ...(query ? { originalName: { $regex: escapeRegex(query), $options: "i" } } : {}),
   }).sort({ createdAt: -1 }).limit(20).lean().exec();
 

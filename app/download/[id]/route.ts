@@ -3,8 +3,10 @@ import { connectToDatabase } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { loadStoredFile } from "@/lib/media-storage";
 import { publicPostFilter } from "@/lib/blog";
+import { publicProductFilter } from "@/lib/product";
 import { Media } from "@/models/media";
 import { Post } from "@/models/post";
+import { Product } from "@/models/product";
 
 function contentDisposition(filename: string) {
   const safeAscii = filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\\r\n]/g, "_") || "download";
@@ -23,7 +25,10 @@ export async function GET(_request: Request, context: RouteContext<"/download/[i
     const publicPost = file.post
       ? await Post.exists({ _id: file.post, mediaIds: file._id, ...publicPostFilter() })
       : null;
-    if (!publicPost) {
+    const publicProduct = file.product
+      ? await Product.exists({ _id: file.product, mediaIds: file._id, ...publicProductFilter() })
+      : null;
+    if (!publicPost && !publicProduct) {
       const user = await getCurrentUser();
       if (!user || file.owner.toString() !== user.id) return new Response("Not found", { status: 404 });
     }

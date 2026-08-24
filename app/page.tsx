@@ -15,6 +15,7 @@ import { ReviewsCarousel } from "./reviews-carousel";
 import { ClosingCta } from "./closing-cta";
 import { getHeroSettings } from "@/lib/hero-data";
 import { getReviewSettings } from "@/lib/review-settings";
+import { getHomepageProducts } from "@/lib/product-data";
 
 export const dynamic = "force-dynamic";
 
@@ -68,10 +69,10 @@ const technologies = [
   { Icon: SiMongodb, name: "MongoDB", purpose: "Flexible data", color: "#3f8e3d" },
 ];
 
-const projects = [
-  { type: "Fintech platform", title: "Orbit Finance", result: "2.4× faster onboarding", image: "/projects/orbit-finance-dashboard.png", imageAlt: "Orbit Finance cash operations dashboard" },
-  { type: "Health technology", title: "CareSync", result: "60% fewer admin tasks", image: "/projects/caresync-dashboard.png", imageAlt: "CareSync clinic scheduling and patient operations dashboard" },
-  { type: "Commerce ecosystem", title: "Northstar", result: "+38% conversion", image: "/projects/northstar-dashboard.png", imageAlt: "Northstar commerce analytics and inventory dashboard" },
+const fallbackProjects = [
+  { type: "Fintech platform", title: "Orbit Finance", result: "2.4× faster onboarding", image: "/projects/orbit-finance-dashboard.png", imageAlt: "Orbit Finance cash operations dashboard", url: "#contact" },
+  { type: "Health technology", title: "CareSync", result: "60% fewer admin tasks", image: "/projects/caresync-dashboard.png", imageAlt: "CareSync clinic scheduling and patient operations dashboard", url: "#contact" },
+  { type: "Commerce ecosystem", title: "Northstar", result: "+38% conversion", image: "/projects/northstar-dashboard.png", imageAlt: "Northstar commerce analytics and inventory dashboard", url: "#contact" },
 ];
 
 const faqs = [
@@ -84,6 +85,13 @@ const faqs = [
 
 export default async function Home() {
   const [heroSettings, reviewSettings] = await Promise.all([getHeroSettings(), getReviewSettings()]);
+  let publishedProducts: Awaited<ReturnType<typeof getHomepageProducts>> = [];
+  try { publishedProducts = await getHomepageProducts(3); } catch { /* Keep the fallback when the database is unavailable. */ }
+  const projects = publishedProducts.length ? publishedProducts.map((product) => ({
+    type: product.category, title: product.title, result: product.summary,
+    image: product.cover ? `/media/${product.cover.id}` : "", imageAlt: product.cover?.altText || product.title,
+    url: `/products/${product.slug}`,
+  })) : fallbackProjects;
   return (
     <main>
       <SiteHeader />
@@ -130,7 +138,7 @@ export default async function Home() {
 
       <section className="section work-section" id="work">
         <div className="work-backdrops" aria-hidden="true">
-          {projects.map((project) => (
+          {projects.filter((project) => project.image).map((project) => (
             <Image
               className="work-backdrop"
               src={project.image}
@@ -138,6 +146,7 @@ export default async function Home() {
               fill
               sizes="100vw"
               key={project.title}
+              unoptimized={project.image.startsWith("/media/")}
             />
           ))}
         </div>
@@ -149,14 +158,15 @@ export default async function Home() {
           <div className="project-grid">
             {projects.map((project, index) => (
               <article className="project-card" key={project.title}>
-                <div className="project-mockup">
-                  <Image src={project.image} alt={project.imageAlt} fill sizes="(max-width: 760px) calc(100vw - 56px), (max-width: 1000px) 30vw, 360px" />
-                </div>
-                <div className="project-info"><span>{project.type}</span><h3>{project.title}</h3><p>{project.result}</p><a href="#contact" aria-label={`Discuss a project like ${project.title}`}><Icon name="arrow" /></a></div>
+                <Link className="project-mockup" href={project.url}>
+                  {project.image ? <Image src={project.image} alt={project.imageAlt} fill sizes="(max-width: 760px) calc(100vw - 56px), (max-width: 1000px) 30vw, 360px" unoptimized={project.image.startsWith("/media/")} /> : <span className="project-placeholder">VD</span>}
+                </Link>
+                <div className="project-info"><span>{project.type}</span><h3><Link href={project.url}>{project.title}</Link></h3><p>{project.result}</p><Link href={project.url} aria-label={`View ${project.title}`}><Icon name="arrow" /></Link></div>
                 <span className="project-number">0{index + 1}</span>
               </article>
             ))}
           </div>
+          {publishedProducts.length > 0 && <div className="work-all-link"><Link className="text-link" href="/products">Explore all products <Icon name="arrow" /></Link></div>}
         </div>
       </section>
 
@@ -225,7 +235,7 @@ export default async function Home() {
       <footer className="footer">
         <div className="shell footer-grid">
           <div className="footer-brand"><a className="brand" href="#home" aria-label="VD Infotech home"><span className="brand-mark">VD</span><span><strong>VD INFOTECH</strong><small>Ideas. Engineered.</small></span></a><p>We design and build digital products that make businesses more useful, resilient, and ready for what&apos;s next.</p></div>
-          <div className="footer-links"><h3>Explore</h3><a href="#about">About</a><a href="#services">Services</a><a href="#work">Work</a><a href="#process">Process</a><Link href="/blog">Blog</Link></div>
+          <div className="footer-links"><h3>Explore</h3><a href="#about">About</a><a href="#services">Services</a><a href="#work">Work</a><Link href="/products">Products</Link><a href="#process">Process</a><Link href="/blog">Blog</Link></div>
           <div className="footer-links"><h3>Services</h3><a href="#services">Web development</a><a href="#services">Mobile apps</a><a href="#services">AI integrations</a><a href="#services">Cloud solutions</a></div>
           <div className="footer-contact"><h3>Get in touch</h3><a href="mailto:hello@vdinfotech.com"><Icon name="mail" /> hello@vdinfotech.com</a><a href="tel:+923001234567"><Icon name="phone" /> +92 300 123 4567</a><p><Icon name="pin" /> Lahore, Pakistan</p></div>
         </div>

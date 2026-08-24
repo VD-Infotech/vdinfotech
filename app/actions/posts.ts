@@ -106,11 +106,11 @@ export async function savePostAction(
 
   await connectToDatabase();
   const ownedMedia = requestedMediaIds.length
-    ? await Media.find({ _id: { $in: requestedMediaIds }, owner: user.id }).select("_id post").lean().exec()
+    ? await Media.find({ _id: { $in: requestedMediaIds }, owner: user.id }).select("_id post product").lean().exec()
     : [];
   if (
     ownedMedia.length !== requestedMediaIds.length ||
-    ownedMedia.some((media) => media.post && media.post.toString() !== parsed.data.postId)
+    ownedMedia.some((media) => media.product || (media.post && media.post.toString() !== parsed.data.postId))
   ) {
     return { message: "One or more selected images are unavailable." };
   }

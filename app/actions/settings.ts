@@ -165,6 +165,7 @@ export async function saveReviewSettingsAction(
         owner: user.id,
         kind: "image",
         post: null,
+        product: null,
       });
       if (ownedImages !== imageIds.length) {
         return { errors: ["One or more review images are unavailable. Upload them again."] };

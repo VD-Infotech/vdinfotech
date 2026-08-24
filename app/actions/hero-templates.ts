@@ -20,7 +20,7 @@ async function validateMedia(settings: HeroSettingsData) {
   const ids = [...new Set(settings.slides.map((slide) => slide.imageId).filter(Boolean))];
   if (ids.some((id) => !Types.ObjectId.isValid(id))) throw new Error("A selected image is invalid.");
   await connectToDatabase();
-  const count = ids.length ? await Media.countDocuments({ _id: { $in: ids }, kind: "image" }) : 0;
+  const count = ids.length ? await Media.countDocuments({ _id: { $in: ids }, kind: "image", post: null, product: null }) : 0;
   if (count !== ids.length) throw new Error("One or more template images are unavailable.");
   return ids;
 }
@@ -33,9 +33,9 @@ async function removeOrphanedMedia(candidateIds: string[]) {
   const activeIds = new Set(active?.slides?.map((slide) => slide.image?.toString()).filter((id): id is string => Boolean(id)) ?? []);
   const orphanIds = candidateIds.filter((id) => !templateIds.has(id) && !activeIds.has(id));
   if (!orphanIds.length) return;
-  const media = await Media.find({ _id: { $in: orphanIds }, post: null }).select("storedName").lean().exec();
+  const media = await Media.find({ _id: { $in: orphanIds }, post: null, product: null }).select("storedName").lean().exec();
   await Promise.all(media.map((item) => removeImage(item.storedName)));
-  await Media.deleteMany({ _id: { $in: orphanIds }, post: null });
+  await Media.deleteMany({ _id: { $in: orphanIds }, post: null, product: null });
 }
 
 function parsePayload(formData: FormData) {

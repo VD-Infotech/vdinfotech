@@ -19,7 +19,7 @@ export function SiteHeader() {
       <div className="shell nav-wrap">
         <Link className="brand" href="/" aria-label="VD Infotech home" onClick={close}><span className="brand-mark">VD</span><span><strong>VD INFOTECH</strong><small>Ideas. Engineered.</small></span></Link>
         <nav className={open ? "nav-links is-open" : "nav-links"} aria-label="Primary navigation">
-          <Link href="/#about" onClick={close}>About</Link><Link href="/#services" onClick={close}>Services</Link><Link href="/#work" onClick={close}>Work</Link><Link href="/#process" onClick={close}>Process</Link><Link href="/blog" onClick={close}>Blog</Link>
+          <Link href="/#about" onClick={close}>About</Link><Link href="/#services" onClick={close}>Services</Link><Link href="/#work" onClick={close}>Work</Link><Link href="/products" onClick={close}>Products</Link><Link href="/#process" onClick={close}>Process</Link><Link href="/blog" onClick={close}>Blog</Link>
           <Link className="nav-mobile-login" href="/login" onClick={close}>Login</Link>
           <Link className="nav-mobile-cta" href="/#contact" onClick={close}>Let&apos;s talk <ArrowIcon /></Link>
         </nav>

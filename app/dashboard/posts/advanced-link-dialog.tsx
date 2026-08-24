@@ -27,12 +27,14 @@ function readableSize(bytes: number) {
 export function AdvancedLinkDialog({
   initialValue,
   postId,
+  productId,
   onApply,
   onClose,
   onRemove,
 }: {
   initialValue: AdvancedLinkValue;
   postId?: string;
+  productId?: string;
   onApply: (value: AdvancedLinkValue) => void;
   onClose: () => void;
   onRemove: () => void;
@@ -82,7 +84,7 @@ export function AdvancedLinkDialog({
     let ignore = false;
     const timer = window.setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ q: fileQuery, ...(postId ? { postId } : {}) });
+        const params = new URLSearchParams({ q: fileQuery, ...(postId ? { postId } : {}), ...(productId ? { productId } : {}) });
         const response = await fetch(`/api/files?${params}`);
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Could not load files.");
@@ -98,7 +100,7 @@ export function AdvancedLinkDialog({
       }
     }, 250);
     return () => { ignore = true; window.clearTimeout(timer); };
-  }, [fileQuery, initialValue.href, mode, postId]);
+  }, [fileQuery, initialValue.href, mode, postId, productId]);
 
   const removeTemporaryUpload = async () => {
     if (newUpload) await fetch(`/api/files/${newUpload.id}`, { method: "DELETE" }).catch(() => undefined);

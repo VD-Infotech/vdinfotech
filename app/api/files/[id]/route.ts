@@ -21,6 +21,7 @@ export async function DELETE(request: Request, context: RouteContext<"/api/files
   const file = await Media.findOne({ _id: id, owner: user.id, kind: "download" }).exec();
   if (!file) return NextResponse.json({ error: "File not found." }, { status: 404 });
   if (file.post) return NextResponse.json({ error: "Attached files must be removed from the post first." }, { status: 409 });
+  if (file.product) return NextResponse.json({ error: "Attached files must be removed from the product first." }, { status: 409 });
   await removeImage(file.storedName);
   await file.deleteOne();
   return NextResponse.json({ success: true });

@@ -11,6 +11,7 @@ const navigation = [
   { href: "/dashboard/hero", label: "Hero", icon: "hero" },
   { href: "/dashboard/leads", label: "Leads", icon: "leads" },
   { href: "/dashboard/posts", label: "Posts", icon: "posts" },
+  { href: "/dashboard/products", label: "Products", icon: "products" },
   { href: "/dashboard/posts/trash", label: "Trash", icon: "trash" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
   { href: "/dashboard/profile", label: "Profile", icon: "profile" },
@@ -22,6 +23,7 @@ function NavIcon({ name }: { name: string }) {
     hero: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 15 3-3 2 2 2.5-3 3.5 4M8 8h.01"/></>,
     leads: <><path d="M4 5h16v11H7l-3 3Z"/><path d="M8 9h8M8 12h5"/></>,
     posts: <><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
+    products: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></>,
     trash: <><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14"/><path d="M10 11v6M14 11v6"/></>,
     settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1.4 1.6v.09h-4V21a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1.4h-.09v-4H3A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10.4 3v-.09h4V3A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.6 1.4h.09v4H21a1.7 1.7 0 0 0-1.6.6Z"/></>,
     profile: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
@@ -41,6 +43,7 @@ export function DashboardShell({ user, children }: { user: AuthenticatedUser; ch
             <span><strong>VD INFOTECH</strong><small>Creator workspace</small></span>
           </Link>
           <div className="dashboard-header-actions">
+            <Link className="dashboard-view-blog" href="/products" target="_blank">View products ↗</Link>
             <Link className="dashboard-view-blog" href="/blog" target="_blank">View blog ↗</Link>
             <span className="dashboard-user-mark" aria-hidden="true">{user.name.charAt(0).toUpperCase()}</span>
             <div><strong>{user.name}</strong><small>{user.email}</small></div>
@@ -55,7 +58,9 @@ export function DashboardShell({ user, children }: { user: AuthenticatedUser; ch
             {navigation.map((item) => {
               const active = item.href === "/dashboard"
                 ? pathname === item.href
-                : pathname === item.href || (item.href === "/dashboard/posts" && pathname.startsWith("/dashboard/posts/") && !pathname.endsWith("/trash"));
+                : pathname === item.href
+                  || (item.href === "/dashboard/posts" && pathname.startsWith("/dashboard/posts/") && !pathname.endsWith("/trash"))
+                  || (item.href === "/dashboard/products" && pathname.startsWith("/dashboard/products/"));
               return <Link className={active ? "is-active" : ""} href={item.href} key={item.href}><NavIcon name={item.icon} />{item.label}</Link>;
             })}
           </nav>
