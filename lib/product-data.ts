@@ -1,6 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
 import { connectToDatabase } from "@/lib/db";
 import { publicProductFilter } from "@/lib/product";
 import { Product } from "@/models/product";
@@ -50,11 +49,16 @@ export async function findPublishedProducts(filter: Record<string, unknown>, opt
   return products.filter((product) => product.author).map(toPublicProduct);
 }
 
-export const getPublicProductBySlug = cache(async (slug: string) => {
+export async function getPublicProductBySlug(slug: string) {
   await connectToDatabase();
-  const product = await publicQuery({ slug }).lean<PopulatedProduct>().exec();
-  return product?.author ? toPublicProduct(product) : null;
-});
+  let normalizedSlug = slug.trim().toLowerCase();
+  try { normalizedSlug = decodeURIComponent(normalizedSlug); } catch { return null; }
+  const product = await Product.findOne({ slug: normalizedSlug, status: "published", deletedAt: null })
+    .populate("author", "name").populate("coverMedia", "altText").populate("galleryMedia", "altText")
+    .lean<PopulatedProduct>().exec();
+  if (!product?.author || !product.publishedAt || product.publishedAt > new Date()) return null;
+  return toPublicProduct(product);
+}
 
 export async function getHomepageProducts(limit = 3) {
   await connectToDatabase();

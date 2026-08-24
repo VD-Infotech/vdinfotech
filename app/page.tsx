@@ -155,7 +155,7 @@ export default async function Home() {
             <p className="eyebrow"><span /> Selected work</p>
             <h2>Products that perform in the <em>real world.</em></h2>
           </div>
-          <div className="project-grid">
+          <div className={`project-grid project-count-${Math.min(projects.length, 3)}`}>
             {projects.map((project, index) => (
               <article className="project-card" key={project.title}>
                 <Link className="project-mockup" href={project.url}>

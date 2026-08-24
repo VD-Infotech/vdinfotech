@@ -12,6 +12,13 @@ import { saveProductAction, type ProductFormState } from "@/app/actions/products
 import { AdvancedLinkDialog, type AdvancedLinkValue } from "@/app/dashboard/posts/advanced-link-dialog";
 
 type GalleryImage = { id: string; url: string; altText: string };
+type GalleryUpload = {
+  key: string;
+  name: string;
+  progress: number;
+  status: "uploading" | "complete" | "error";
+  error?: string;
+};
 export type EditableProduct = {
   id: string; title: string; summary: string; category: string; tags: string[]; technologies: string[];
   contentHtml: string; liveDemoUrl: string; featured: boolean; displayOrder: number;
@@ -44,6 +51,25 @@ async function uploadImage(file: File, altText: string): Promise<GalleryImage> {
   const response = await fetch("/api/media", { method: "POST", body: data }); const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Image upload failed."); return result;
 }
+function uploadImageWithProgress(file: File, altText: string, onProgress: (progress: number) => void): Promise<GalleryImage> {
+  return new Promise((resolve, reject) => {
+    const data = new FormData(); data.set("image", file); data.set("altText", altText);
+    const request = new XMLHttpRequest();
+    request.open("POST", "/api/media");
+    request.responseType = "json";
+    request.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+    });
+    request.addEventListener("load", () => {
+      const result = request.response || {};
+      if (request.status >= 200 && request.status < 300) { onProgress(100); resolve(result as GalleryImage); }
+      else reject(new Error(result.error || "Image upload failed."));
+    });
+    request.addEventListener("error", () => reject(new Error("Network error while uploading image.")));
+    request.addEventListener("abort", () => reject(new Error("Image upload was cancelled.")));
+    request.send(data);
+  });
+}
 async function deleteUnattached(id: string) { await fetch(`/api/media/${id}`, { method: "DELETE" }).catch(() => undefined); }
 
 function localScheduleValue(value?: string) {
@@ -70,6 +96,7 @@ export function ProductEditor({ product }: { product?: EditableProduct }) {
   }));
   const [contentHtml, setContentHtml] = useState(product?.contentHtml || "<p></p>");
   const [gallery, setGallery] = useState<GalleryImage[]>(product?.gallery || []);
+  const [galleryUploads, setGalleryUploads] = useState<GalleryUpload[]>([]);
   const [coverMediaId, setCoverMediaId] = useState(product?.coverMediaId || "");
   const [uploading, setUploading] = useState(false); const [uploadError, setUploadError] = useState("");
   const [dirty, setDirty] = useState(false); const [draggedId, setDraggedId] = useState("");
@@ -88,16 +115,31 @@ export function ProductEditor({ product }: { product?: EditableProduct }) {
   const uploadGallery = async (files: FileList) => {
     setUploadError(""); const available = 12 - gallery.length; const selected = [...files].slice(0, available);
     if (files.length > available) setUploadError(`Only ${available} more gallery image${available === 1 ? "" : "s"} can be added.`);
+    if (!selected.length) return;
+    const uploads = selected.map((file, index) => ({
+      key: `${file.name}-${file.size}-${file.lastModified}-${index}-${Date.now()}`,
+      name: file.name,
+      progress: 0,
+      status: "uploading" as const,
+    }));
+    setGalleryUploads(uploads);
     setUploading(true);
-    try {
-      for (const file of selected) {
-        const uploaded = await uploadImage(file, fields.title || "Product gallery image");
+    await Promise.all(selected.map(async (file, index) => {
+      const upload = uploads[index];
+      try {
+        const uploaded = await uploadImageWithProgress(file, fields.title || "Product gallery image", (progress) => {
+          setGalleryUploads((current) => current.map((item) => item.key === upload.key ? { ...item, progress } : item));
+        });
         setGallery((current) => [...current, uploaded]);
         setCoverMediaId((current) => current || uploaded.id);
+        setGalleryUploads((current) => current.map((item) => item.key === upload.key ? { ...item, progress: 100, status: "complete" } : item));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Image upload failed.";
+        setGalleryUploads((current) => current.map((item) => item.key === upload.key ? { ...item, status: "error", error: message } : item));
       }
-      setDirty(true);
-    } catch (error) { setUploadError(error instanceof Error ? error.message : "Image upload failed."); }
-    finally { setUploading(false); }
+    }));
+    setDirty(true); setUploading(false);
+    window.setTimeout(() => setGalleryUploads((current) => current.filter((item) => item.status === "error")), 1800);
   };
   const uploadInline = async (file: File) => {
     setUploadError(""); setUploading(true);
@@ -137,7 +179,8 @@ export function ProductEditor({ product }: { product?: EditableProduct }) {
       <div className={`rich-editor-wrap${state.errors?.contentHtml ? " has-error" : ""}`} aria-invalid={Boolean(state.errors?.contentHtml)}><div className="rich-editor-label"><span>Case-study description</span><small>Rich text</small></div><div className="editor-toolbar">
         <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()}>Bold</button><button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()}>Italic</button><button type="button" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button><button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()}>List</button><button type="button" onClick={openLink}>Link</button><button type="button" onClick={() => inlineInput.current?.click()} disabled={uploading}>Image</button>{editor?.isActive("image") && <button type="button" onClick={() => void removeSelectedImage()}>Remove image</button>}<button type="button" onClick={() => editor?.chain().focus().undo().run()}>Undo</button><button type="button" onClick={() => editor?.chain().focus().redo().run()}>Redo</button>
       </div><EditorContent editor={editor} /><input ref={inlineInput} hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadInline(file); event.target.value = ""; }} /><ErrorText errors={state.errors?.contentHtml} /></div>
-      <section className={`product-gallery-editor${state.errors?.gallery || state.errors?.coverMediaId ? " has-error" : ""}`}><div className="rich-editor-label"><span>Gallery</span><small>{gallery.length}/12 · drag to reorder</small></div><button className="cover-upload" type="button" disabled={uploading || gallery.length >= 12} onClick={() => galleryInput.current?.click()}>{uploading ? "Uploading..." : "+ Add gallery images"}</button><input ref={galleryInput} hidden multiple type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { if (event.target.files) void uploadGallery(event.target.files); event.target.value = ""; }} />
+      <section className={`product-gallery-editor${state.errors?.gallery || state.errors?.coverMediaId ? " has-error" : ""}`}><div className="rich-editor-label"><span>Gallery</span><small>{gallery.length}/12 · drag to reorder</small></div><button className="cover-upload" type="button" disabled={uploading || gallery.length >= 12} onClick={() => galleryInput.current?.click()}>{uploading ? "Uploading images..." : "+ Add gallery images"}</button><input ref={galleryInput} hidden multiple type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { if (event.target.files) void uploadGallery(event.target.files); event.target.value = ""; }} />
+        {galleryUploads.length > 0 && <div className="gallery-upload-list" aria-label="Image upload progress" aria-live="polite">{galleryUploads.map((upload) => <article className={`gallery-upload-item is-${upload.status}`} key={upload.key}><div><strong title={upload.name}>{upload.name}</strong><span>{upload.status === "error" ? "Failed" : upload.status === "complete" ? "Complete" : `${upload.progress}%`}</span></div><progress value={upload.progress} max={100} aria-label={`${upload.name}: ${upload.progress}% uploaded`} />{upload.error && <div className="gallery-upload-error"><p>{upload.error}</p><button type="button" onClick={() => setGalleryUploads((current) => current.filter((item) => item.key !== upload.key))}>Dismiss</button></div>}</article>)}</div>}
         {gallery.length > 0 && <div className="product-gallery-editor-grid">{gallery.map((image) => <article key={image.id} draggable onDragStart={() => setDraggedId(image.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveImage(image.id)}><NextImage src={image.url} alt={image.altText || "Gallery preview"} width={360} height={220} unoptimized /><label><input type="radio" checked={coverMediaId === image.id} onChange={() => { setCoverMediaId(image.id); setDirty(true); }} /> Cover</label><input aria-label="Image alt text" value={image.altText} maxLength={180} placeholder="Describe this image" onChange={(event) => setGallery((current) => current.map((item) => item.id === image.id ? { ...item, altText: event.target.value } : item))} /><button type="button" onClick={() => void removeGalleryImage(image)}>Remove</button></article>)}</div>}
         <ErrorText errors={[...(state.errors?.gallery || []), ...(state.errors?.coverMediaId || [])]} />{uploadError && <p className="editor-error">{uploadError}</p>}
       </section>
