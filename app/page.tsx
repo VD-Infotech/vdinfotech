@@ -237,7 +237,7 @@ export default async function Home() {
           <div className="footer-brand"><a className="brand" href="#home" aria-label="VD Infotech home"><span className="brand-mark">VD</span><span><strong>VD INFOTECH</strong><small>Ideas. Engineered.</small></span></a><p>We design and build digital products that make businesses more useful, resilient, and ready for what&apos;s next.</p></div>
           <div className="footer-links"><h3>Explore</h3><a href="#about">About</a><a href="#services">Services</a><a href="#work">Work</a><Link href="/products">Products</Link><a href="#process">Process</a><Link href="/blog">Blog</Link></div>
           <div className="footer-links"><h3>Services</h3><a href="#services">Web development</a><a href="#services">Mobile apps</a><a href="#services">AI integrations</a><a href="#services">Cloud solutions</a></div>
-          <div className="footer-contact"><h3>Get in touch</h3><a href="mailto:hello@vdinfotech.com"><Icon name="mail" /> hello@vdinfotech.com</a><a href="tel:+923001234567"><Icon name="phone" /> +92 300 123 4567</a><p><Icon name="pin" /> Lahore, Pakistan</p></div>
+          <div className="footer-contact"><h3>Get in touch</h3><a href="mailto:hello@vdinfotech.com"><Icon name="mail" /> hello@vdinfotech.com</a></div>
         </div>
         <div className="shell footer-bottom"><span>© 2026 VD Infotech. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#home">Back to top ↑</a></div></div>
       </footer>
